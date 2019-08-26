@@ -23,6 +23,7 @@ parser.add_argument('--confidence_threshold', default=0.2, type=float, help='con
 parser.add_argument('--top_k', default=5000, type=int, help='top_k')
 parser.add_argument('--nms_threshold', default=0.2, type=float, help='nms_threshold')
 parser.add_argument('--keep_top_k', default=750, type=int, help='keep_top_k')
+parser.add_argument('--save', default=None, type=str, help='save data file')
 args = parser.parse_args()
 
 
@@ -69,7 +70,6 @@ if __name__ == '__main__':
     net = load_model(net, args.trained_model, args.cpu)
     net.eval()
     print('Finished loading model!')
-    print(net)
     cudnn.benchmark = True
     device = torch.device("cpu" if args.cpu else "cuda")
     net = net.to(device)
@@ -141,18 +141,21 @@ if __name__ == '__main__':
 
         assert cap.isOpened(), 'Cannot capture source'
 
-        while cap.isOpened():
+        if args.save:
+            output = cv2.VideoWriter(args.save, cv2.VideoWriter_fourcc(*'mp4v'), 20, (544, 960))
 
-            ret, frame = cap.read()
-            if ret:
+        @profile
+        def run():
+            while cap.isOpened():
+                ret, frame = cap.read()
+                if ret:
                     to_show = frame
                     img = np.float32(to_show)
-
                     if resize != 1:
                         img = cv2.resize(img, None, None, fx=resize, fy=resize, interpolation=cv2.INTER_LINEAR)
                     im_height, im_width, _ = img.shape
                     scale = torch.Tensor([img.shape[1], img.shape[0], img.shape[1], img.shape[0]])
-                    img -= (104, 117, 123)
+                    # img -= (104, 117, 123)
                     img = img.transpose(2, 0, 1)
                     img = torch.from_numpy(img).unsqueeze(0)
                     img = img.to(device)
@@ -195,14 +198,21 @@ if __name__ == '__main__':
                     for i in range(dets.shape[0]):
                         cv2.rectangle(to_show, (dets[i][0], dets[i][1]), (dets[i][2], dets[i][3]), [0, 0, 255], 3)
 
-                    cv2.imshow('image', to_show)
+                    if args.save:
+                        # print(to_show.shape)
+                        output.write(to_show)
+
                     # cv2.waitKey(0)
                     # cv2.destroyAllWindows()
 
-                    key = cv2.waitKey(1)
-                    if key & 0xFF == ord('q'):
-                        break
+                    # key = cv2.waitKey(1)
+                    # if key & 0xFF == ord('q'):
+                        # break
+                else:
+                    break
+        run()
+        cv2.destroyAllWindows()
 
+        if args.save:
+            output.release()
 
-            else:
-                break

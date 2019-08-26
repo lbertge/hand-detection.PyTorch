@@ -5,8 +5,9 @@
 # Written by Ross Girshick
 # --------------------------------------------------------
 
-from .nms.cpu_nms import cpu_nms, cpu_soft_nms
-from .nms.gpu_nms import gpu_nms
+# from nms.cpu_nms import cpu_nms, cpu_soft_nms
+# from .nms.gpu_nms import gpu_nms
+import utils.nms.py_cpu_nms as py_nms
 
 
 # def nms(dets, thresh, force_cpu=False):
@@ -27,5 +28,6 @@ def nms(dets, thresh, force_cpu=False):
         return []
     if force_cpu:
         #return cpu_soft_nms(dets, thresh, method = 0)
-        return cpu_nms(dets, thresh)
+        # return cpu_nms(dets, thresh)
+        return py_nms.py_cpu_nms(dets, thresh)
     return gpu_nms(dets, thresh)
